@@ -1,0 +1,49 @@
+/model_config.yaml
+
+
+
+# ========== Python 虚拟环境 ==========
+.venv/
+venv/
+env/
+ENV/
+
+# ========== Python 缓存 ==========
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# ========== 日志和临时文件 ==========
+*.log
+*.tmp
+*.bak
+*.swp
+*.pid
+
+# ========== 编辑器配置 ==========
+.vscode/
+.idea/
+*.iml
+
+# ========== 环境配置（敏感） ==========
+.env
+.env.*
+
+# ========== Jupyter Notebook ==========
+.ipynb_checkpoints/
+
+# ========== 构建产物 ==========
+build/
+dist/
+*.egg
+*.egg-info/
+pip-wheel-metadata/
+*.whl
+
+# ========== Pytest 缓存 ==========
+.pytest_cache/
+
+# ========== VS Code Remote ==========
+.vscode-server/
+

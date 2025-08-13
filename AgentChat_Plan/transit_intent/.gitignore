@@ -1,0 +1,5 @@
+# Default ignored files
+/__pycache__
+/bert_intent_model
+/bert_slot_model
+
