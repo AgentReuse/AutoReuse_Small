@@ -68,27 +68,27 @@ llm_config = {
 async def start_chat():
     plan_provider = autogen.AssistantAgent(
         name="PlanProvider",
-        system_message="You are good at condensing user input into concise, structured, and information-dense task descriptions...",
+        system_message="You are good at condensing user input into concise, structured, and information-dense task descriptions. Note: Your responses should be highly summarized, typically no more than 30 words. Your generated plan should include a keyword, which is replaceable. By substituting the original keyword with another one, the new plan should remain reusable. At the same time, the originally generated plan itself should also have a high degree of reusability. In the task description you generate, the keywords clearly stated in the input must be included and enclosed in curly braces ({}). When mentioning an entity value in your output sentence, wrap it with curly braces in the format {entity_type:entity_value}. For example, if the entity is {'transport_mode': 'train', 'source': 'jfk airport', 'destination': 'san francisco', 'date': 'next monday'}, you must refer to san francisco as {'destination': 'san francisco'} in your response.",
         llm_config=llm_config
     )
 
     info_retriever = autogen.AssistantAgent(
         name="InfoRetriever",
-        system_message="You are good at retrieving knowledge...",
+        system_message="You are good at retrieving knowledge, examples and data related to the task. When necessary, you can call the search_web tool. The above plan is a proven and feasible plan. You only need to follow it step by step, without overthinking, without engaging in divergent thinking, without additional discussion, and simply execute the plan.",
         llm_config=llm_config,
         tools=[search_web]
     )
 
     analyst = autogen.AssistantAgent(
         name="Analyst",
-        system_message="You are good at conducting clear and organized analyses...",
+        system_message="You are good at conducting clear and organized analyses of given tasks or information, and can call on the analyze_data tool to assist in making judgments. The above plan is a proven and feasible plan. You only need to follow it step by step, without overthinking, without engaging in divergent thinking, without additional discussion, and simply execute the plan.",
         llm_config=llm_config,
         tools=[analyze_data]
     )
 
     output_summarizer = autogen.AssistantAgent(
         name="OutputSummarizer",
-        system_message="You do not directly engage in communication with other agents...",
+        system_message="You do not directly engage in communication with other agents. You only need to make a systematic summary of the outputs given by other team members in the current context, which should be organized and easy to understand. ",
         llm_config=llm_config
     )
 
