@@ -2,7 +2,6 @@ import autogen
 from autogen.agentchat.contrib.retrieve_assistant_agent import RetrieveAssistantAgent
 from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent
 from autogen import AssistantAgent, UserProxyAgent, config_list_from_json, GroupChat, GroupChatManager
-import chromadb
 import os
 from autogen import GroupChat
 import json
@@ -11,7 +10,7 @@ from autogen.retrieve_utils import TEXT_FORMATS
 ######################################################################
 config_list_mistral = [
     {
-        "base_url": "http://localhost:35666/v1",
+        "base_url": "http://localhost:11434/v1",
         "api_key": "sk-111111111111",
         "model": "llama2:13b"
     }
@@ -19,7 +18,7 @@ config_list_mistral = [
 
 config_list_codellama = [
     {
-        "base_url": "http://localhost:8000/v1",
+        "base_url": "http://localhost:11434/v1",
         "api_key": "sk-111111111111",
         "model": "llama2:13b"
     }
@@ -63,7 +62,7 @@ Otherwise, reply CONTINUE, or the reason why the task is not solved yet."""
 )
 
 task="""
-Write a python script to output numbers 1 to 100 and then the user_proxy agent should run the script
+Write a python script to perform a quick sort.
 """
 
 #task="""
