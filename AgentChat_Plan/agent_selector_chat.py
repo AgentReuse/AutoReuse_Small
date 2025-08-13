@@ -148,7 +148,7 @@ async def set_starts() -> List[cl.Starter]:
     return [
         cl.Starter(
             label="Ticket",
-            message="Is the train from JFK Airport to San Francisco running next Monday?"
+            message="Write a python script to perform a quick sort."
         ),
     ]
 
