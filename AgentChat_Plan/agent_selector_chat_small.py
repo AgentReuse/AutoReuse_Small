@@ -2,14 +2,14 @@ import time
 import json
 import re
 import autogen
-from Response_reuse import SemanticCache
+#from Response_reuse import SemanticCache
 from transit_intent import load_models, predict
 
 # ========== 初始化向量缓存 ==========
-semantic_cache = SemanticCache(
-    embedding_model_path="./m3e-small",
-    cache_path="./semantic_cache"
-)
+# semantic_cache = SemanticCache(
+#     embedding_model_path="./m3e-small",
+#     cache_path="./semantic_cache"
+# )
 
 # ========== 工具函数 ==========
 async def search_web(query: str) -> str:
@@ -92,14 +92,14 @@ def run_chat(user_text: str):
     start_time = time.time()
 
     # intent 识别
-    embedding = semantic_cache.get_embedding(user_text)
-    similar_question, score, cached_data = semantic_cache.search_similar_query(embedding)
-    cached_intent = json.loads(cached_data["intent"]) if cached_data else None
+    #embedding = semantic_cache.get_embedding(user_text)
+    #similar_question, score, cached_data = semantic_cache.search_similar_query(embedding)
+    #cached_intent = json.loads(cached_data["intent"]) if cached_data else None
 
     load_models(intent_dir="transit_intent/bert_intent_model",
                 slot_dir="transit_intent/bert_slot_model")
     intent = predict(user_text)
-    semantic_cache.save_to_cache(user_text, None, None, intent)
+    #semantic_cache.save_to_cache(user_text, None, None, intent)
 
     # 这里保留你的复用逻辑
     isReuse = 0  # 可以改成1/2测试
@@ -108,7 +108,7 @@ def run_chat(user_text: str):
         plan_resp = plan_provider.generate_reply(messages=[{"content": str(user_text) + str(intent)}])
         new_plan_with_braces = plan_resp["content"]
         new_plan_without_braces = clean_braces(new_plan_with_braces)
-        semantic_cache.save_to_cache(user_text, None, new_plan_with_braces)
+        #semantic_cache.save_to_cache(user_text, None, new_plan_with_braces)
 
         print("\n[Generated Plan]:", new_plan_without_braces)
         manager.groupchat.messages.append({"role": "user", "content": new_plan_without_braces})
@@ -121,8 +121,8 @@ def run_chat(user_text: str):
         manager.run_chat()
 
     elif isReuse == 2:
-        response = cached_data["response"]
-        print("\n[Reused Response]:", response)
+        #response = cached_data["response"]
+        #print("\n[Reused Response]:", response)
 
     print(f"\n⏱ Delay = {time.time()-start_time:.2f}s")
 
