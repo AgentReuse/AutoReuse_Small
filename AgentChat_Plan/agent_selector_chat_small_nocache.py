@@ -78,19 +78,25 @@ plan_provider = autogen.AssistantAgent(
     system_message="You are good at condensing user input into concise, structured, and information-dense task descriptions. Note: Your responses should be highly summarized, typically no more than 30 words. Your generated plan should include a keyword, which is replaceable. By substituting the original keyword with another one, the new plan should remain reusable. At the same time, the originally generated plan itself should also have a high degree of reusability. In the task description you generate, the keywords clearly stated in the input must be included and enclosed in curly braces ({}). When mentioning an entity value in your output sentence, wrap it with curly braces in the format {entity_type:entity_value}. For example, if the entity is {'transport_mode': 'train', 'source': 'jfk airport', 'destination': 'san francisco', 'date': 'next monday'}, you must refer to san francisco as {'destination': 'san francisco'} in your response.",
     llm_config=llm_config
 )
+#
+# info_retriever = autogen.AssistantAgent(
+#     name="InfoRetriever",
+#     system_message="You are good at retrieving knowledge, examples and data related to the task. When necessary, you can call the search_web tool. The above plan is a proven and feasible plan. You only need to follow it step by step, without overthinking, without engaging in divergent thinking, without additional discussion, and simply execute the plan.",
+#     llm_config=llm_config
+# )
+#
+# analyst = autogen.AssistantAgent(
+#     name="Analyst",
+#     system_message="You are good at conducting clear and organized analyses of given tasks or information, and can call on the analyze_data tool to assist in making judgments. The above plan is a proven and feasible plan. You only need to follow it step by step, without overthinking, without engaging in divergent thinking, without additional discussion, and simply execute the plan.",
+#     llm_config=llm_config
+# )
 
-info_retriever = autogen.AssistantAgent(
-    name="InfoRetriever",
-    system_message="You are good at retrieving knowledge, examples and data related to the task. When necessary, you can call the search_web tool. The above plan is a proven and feasible plan. You only need to follow it step by step, without overthinking, without engaging in divergent thinking, without additional discussion, and simply execute the plan.",
+coder = autogen.AssistantAgent(
+    name="Coder",
     llm_config=llm_config,
-    tools=[search_web]
-)
-
-analyst = autogen.AssistantAgent(
-    name="Analyst",
-    system_message="You are good at conducting clear and organized analyses of given tasks or information, and can call on the analyze_data tool to assist in making judgments. The above plan is a proven and feasible plan. You only need to follow it step by step, without overthinking, without engaging in divergent thinking, without additional discussion, and simply execute the plan.",
-    llm_config=llm_config,
-    tools=[analyze_data]
+    # code_execution=False # Disable code execution entirely
+    system_message="You are a highly skilled coder agent responsible for writing, checking, and improving code based on the user’s requests. You must produce correct, efficient, and well-documented code, verify syntax and logic, and point out or fix potential bugs or improvements when necessary. Ensure that your responses are precise, concise, and directly actionable. Always provide complete solutions unless explicitly asked for partial output. Reply TERMINATE if the task has been solved at full satisfaction. Otherwise, reply CONTINUE, or explain the reason why the task is not solved yet.",
+    code_execution_config={"work_dir":"coding", "use_docker":False}
 )
 
 output_summarizer = autogen.AssistantAgent(
@@ -100,7 +106,7 @@ output_summarizer = autogen.AssistantAgent(
 )
 
 groupchat = autogen.GroupChat(
-    agents=[plan_provider, info_retriever, analyst, output_summarizer],
+    agents=[plan_provider, coder, output_summarizer],
     messages=[],
     max_round=6
 )
@@ -147,5 +153,5 @@ def run_chat(user_text: str):
 
 # ========== 示例运行 ==========
 if __name__ == "__main__":
-    user_input = "Is the train from JFK Airport to San Francisco running next Monday?"
+    user_input = "Write a python script to perform a quick sort."
     run_chat(user_input)
