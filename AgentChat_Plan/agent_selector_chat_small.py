@@ -25,8 +25,16 @@ llm_config_codellama={
 # llm_config_mistral = llm_config_mistral
 llm_config_codellama = llm_config_codellama
 ######################################################################
+def is_term(msg):
+    try:
+        print("TERMINATE Detected")
+        return "TERMINATE" in str(msg.get("content","")).strip()
+    except Exception:
+        return False
+
 output_summarizer = autogen.AssistantAgent(
     name="OutputSummarizer",
+    is_termination_msg=is_term,
     system_message="You do not directly engage in communication with other agents. You only need to make a systematic summary of the outputs given by other team members in the current context, which should be organized and easy to understand. ",
     llm_config=llm_config_codellama
 )
@@ -35,6 +43,7 @@ assistant = autogen.AssistantAgent(
     name="Assistant",
     llm_config=llm_config_codellama,
     # code_execution=False # Disable code execution entirely
+    is_termination_msg=is_term,
     code_execution_config={"work_dir":"output/coding", "use_docker":False}
 )
 
@@ -42,6 +51,7 @@ coder = autogen.AssistantAgent(
     name="Coder",
     llm_config=llm_config_codellama,
     # code_execution=False # Disable code execution entirely
+    is_termination_msg=is_term,
     code_execution_config={"work_dir":"output/coding", "use_docker":False}
 )
 
@@ -50,10 +60,10 @@ user_proxy = autogen.UserProxyAgent(
     human_input_mode="NEVER",
     #human_input_mode="TERMINATE",
     max_consecutive_auto_reply=10,
-    is_termination_msg=lambda x: x.get("content", "").rstrip().endswith("TERMINATE"),
     code_execution_config={"work_dir": "coding", "use_docker":False},
     llm_config=llm_config_codellama,
-    system_message="""Reply TERMINATE if the task has been solved at full satisfaction.
+    is_termination_msg=is_term,
+    system_message="""Reply TERMINATE in the end of your response if the task has been solved at full satisfaction.
 Otherwise, reply CONTINUE, or the reason why the task is not solved yet."""
 )
 
@@ -66,7 +76,20 @@ Write a python script to perform a quick sort.
 #"""
 
 #user_proxy.initiate_chat(coder, message=task)  # Simple chat with coder
-
 groupchat = autogen.GroupChat(agents=[user_proxy, coder, output_summarizer], messages=[], max_round=12)
 manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=llm_config_codellama)
 user_proxy.initiate_chat(manager, message=task)
+
+# 提取 OutputSummarizer 输出
+history = manager.groupchat.messages  # 列表：每条是{"role": "...", "name": "...", "content": "..."}
+summary_msgs = [m for m in history if m.get("name") == "OutputSummarizer" and m.get("content")]
+
+if summary_msgs:
+    output_summary = summary_msgs[-1]["content"]
+    print("=== OutputSummarizer ===\n", output_summary)
+    # 如需写文件：
+    os.makedirs("output", exist_ok=True)
+    with open("output/summary.txt", "w", encoding="utf-8") as f:
+        f.write(output_summary)
+else:
+    print("未在历史中找到 OutputSummarizer 的消息。")
