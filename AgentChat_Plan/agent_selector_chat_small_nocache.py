@@ -111,7 +111,7 @@ output_summarizer = autogen.AssistantAgent(
 )
 
 groupchat = autogen.GroupChat(
-    agents=[user, coder, output_summarizer],
+    agents=[coder, output_summarizer],
     messages=[],
     max_round=6
 )
