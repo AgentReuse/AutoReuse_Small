@@ -73,11 +73,16 @@ llm_config = {
 }
 
 # ========== 构建 Agents ==========
-plan_provider = autogen.AssistantAgent(
-    name="PlanProvider",
-    system_message="You are good at condensing user input into concise, structured, and information-dense task descriptions. Note: Your responses should be highly summarized, typically no more than 30 words. Your generated plan should include a keyword, which is replaceable. By substituting the original keyword with another one, the new plan should remain reusable. At the same time, the originally generated plan itself should also have a high degree of reusability. In the task description you generate, the keywords clearly stated in the input must be included and enclosed in curly braces ({}). When mentioning an entity value in your output sentence, wrap it with curly braces in the format {entity_type:entity_value}. For example, if the entity is {'transport_mode': 'train', 'source': 'jfk airport', 'destination': 'san francisco', 'date': 'next monday'}, you must refer to san francisco as {'destination': 'san francisco'} in your response.",
-    llm_config=llm_config
+user = UserProxyAgent(
+    name="user",
+    input_func=user_text, # Uncomment this line to use user input as text.
 )
+
+# plan_provider = autogen.AssistantAgent(
+#     name="PlanProvider",
+#     system_message="You are good at condensing user input into concise, structured, and information-dense task descriptions. Note: Your responses should be highly summarized, typically no more than 30 words. Your generated plan should include a keyword, which is replaceable. By substituting the original keyword with another one, the new plan should remain reusable. At the same time, the originally generated plan itself should also have a high degree of reusability. In the task description you generate, the keywords clearly stated in the input must be included and enclosed in curly braces ({}). When mentioning an entity value in your output sentence, wrap it with curly braces in the format {entity_type:entity_value}. For example, if the entity is {'transport_mode': 'train', 'source': 'jfk airport', 'destination': 'san francisco', 'date': 'next monday'}, you must refer to san francisco as {'destination': 'san francisco'} in your response.",
+#     llm_config=llm_config
+# )
 #
 # info_retriever = autogen.AssistantAgent(
 #     name="InfoRetriever",
@@ -106,7 +111,7 @@ output_summarizer = autogen.AssistantAgent(
 )
 
 groupchat = autogen.GroupChat(
-    agents=[plan_provider, coder, output_summarizer],
+    agents=[user, coder, output_summarizer],
     messages=[],
     max_round=6
 )
@@ -130,13 +135,13 @@ def run_chat(user_text: str):
     isReuse = 0  # 可以改成1/2测试
 
     if isReuse == 0:
-        plan_resp = plan_provider.generate_reply(messages=[{"content": str(user_text) + str(intent)}])
-        new_plan_with_braces = plan_resp["content"]
-        new_plan_without_braces = clean_braces(new_plan_with_braces)
+        # plan_resp = plan_provider.generate_reply(messages=[{"content": str(user_text) + str(intent)}])
+        # new_plan_with_braces = plan_resp["content"]
+        # new_plan_without_braces = clean_braces(new_plan_with_braces)
         # semantic_cache.save_to_cache(user_text, None, new_plan_with_braces)
 
-        print("\n[Generated Plan]:", new_plan_without_braces)
-        manager.groupchat.messages.append({"role": "user", "content": new_plan_without_braces})
+        # print("\n[Generated Plan]:", new_plan_without_braces)
+        manager.groupchat.messages.append({"role": "user", "content": user_text})
         manager.run_chat()
 
     # elif isReuse == 1:
