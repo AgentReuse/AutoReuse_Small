@@ -141,7 +141,7 @@ def run_chat(user_text: str):
         # semantic_cache.save_to_cache(user_text, None, new_plan_with_braces)
 
         # print("\n[Generated Plan]:", new_plan_without_braces)
-        manager.groupchat.messages.append({"role": "user", "content": user_text})
+        # manager.groupchat.messages.append({"role": "user", "content": user_text})
         manager.run_chat()
 
     # elif isReuse == 1:
