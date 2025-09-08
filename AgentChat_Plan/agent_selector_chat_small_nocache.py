@@ -73,10 +73,10 @@ llm_config = {
 }
 
 # ========== 构建 Agents ==========
-user = UserProxyAgent(
-    name="user",
-    input_func=user_text, # Uncomment this line to use user input as text.
-)
+# user = UserProxyAgent(
+#     name="user",
+#     input_func=user_text, # Uncomment this line to use user input as text.
+# )
 
 # plan_provider = autogen.AssistantAgent(
 #     name="PlanProvider",
