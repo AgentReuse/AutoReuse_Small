@@ -18,19 +18,31 @@ async def search_web(query: str) -> str:
 async def analyze_data(data: str) -> str:
     return f"📊 针对数据'{data}'的初步分析结果：……"
 
-def fill_plan_keep_placeholders(template, entities):
+def fill_plan_keep_placeholders(template: str,
+                                entities: Union[str, Dict[str, str], None]) -> str:
+    """
+    用 entities 替换模板中形如 {key: default} 的槽位，并保留 {key: value} 格式
+    :param template: 原计划字符串，例如 "Check the {transport_mode: train} status ..."
+    :param entities: dict 或 JSON 字符串，例如 {"transport_mode":"plane", ...}
+    :return: 替换后的字符串
+    """
+    # 兼容 JSON 字符串
     if isinstance(entities, str):
         try:
             entities = json.loads(entities)
-        except json.JSONDecodeError:
-            entities = {}
+        except json.JSONDecodeError as e:
+            raise ValueError(f"entities 不是有效的 JSON：{e}")
     entities = entities or {}
-    pattern = re.compile(r"\{\s*(?P<key>\w+)\s*:\s*(?P<default>[^}]*)\}")
-    def _replacer(m):
+
+    # 匹配 { key : default }
+    pattern = re.compile(r"\{\s*(?P<key>[A-Za-z0-9_]+)\s*:\s*(?P<default>[^}]*)\}")
+
+    def _replacer(m: re.Match) -> str:
         key = m.group("key")
         default_val = m.group("default").strip()
         new_val = entities.get(key, default_val)
         return f"{{{key}: {new_val}}}"
+
     return pattern.sub(_replacer, template)
 
 def clean_braces(s):
@@ -38,8 +50,14 @@ def clean_braces(s):
         content = match.group(1).strip()
         colon_pos = content.find(':')
         if colon_pos == -1:
-            return content.strip().strip("\"'")
-        return content[colon_pos+1:].strip().strip("\"'")
+            # 没有冒号，仅去除首尾引号
+            content = re.sub(r"^['\"‘“]+|['\"’”]+$", '', content)
+            return content.strip()
+        # 有冒号，删除冒号及其前所有内容（包括冒号和首尾引号）
+        after_colon = content[colon_pos+1:].strip()
+        after_colon = re.sub(r"^['\"‘“]+|['\"’”]+$", '', after_colon)
+        return after_colon.strip()
+    # 替换所有 {...}
     return re.sub(r"\{([^{}]+)\}", replacer, s)
 
 # ========== LLM 配置 ==========
