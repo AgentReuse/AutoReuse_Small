@@ -4,6 +4,7 @@ import re
 import autogen
 # from Response_reuse import SemanticCache
 from transit_intent import load_models, predict
+from typing import Union, Dict
 
 # ========== 初始化向量缓存 ==========
 # semantic_cache = SemanticCache(
