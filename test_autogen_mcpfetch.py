@@ -48,7 +48,7 @@ llm_config_codellama = llm_config_codellama
 
 async def main():
     # Setup the MCP fetch server parameters
-    fetch_mcp_server = StdioServerParams(command="node", args=["mcp-server-fetch"])
+    fetch_mcp_server = StdioServerParams(command="uvx", args=["mcp-server-fetch"])
 
     # Get the fetch tool from the MCP server
     tools = await mcp_server_tools(fetch_mcp_server)
