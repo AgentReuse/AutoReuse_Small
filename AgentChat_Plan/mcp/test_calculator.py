@@ -41,7 +41,7 @@ async def run_agent(task: str):
         model_client=model_client,
         tools=tools,
         reflect_on_tool_use=True,
-        system_message="你是一个算术大师，使用提供的工具进行算术运算",
+        system_message="你是一个算术大师，使用提供的工具进行算术运算。输出算术结果和完整的工具响应。",
     )
 
     """使用 Console 实时打印所有消息。"""
