@@ -1,6 +1,7 @@
 import asyncio
 
-from autogen_agentchat.agents import AssistantAgent
+import autogen
+from autogen import AssistantAgent, UserProxyAgent, GroupChat, GroupChatManager
 from autogen_agentchat.ui import Console
 from autogen_ext.tools.mcp import StdioServerParams, mcp_server_tools
 
@@ -28,7 +29,7 @@ async def run_agent(task: str):
     tools = await mcp_server_tools(calculator_mcp_server)
 
     # 创建智能体
-    agent = AssistantAgent(
+    agent = autogen.AssistantAgent(
         name="my_agent",
         llm_config=llm_config_codellama,
         tools=tools,
