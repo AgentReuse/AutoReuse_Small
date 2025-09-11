@@ -9,19 +9,8 @@ from autogen_ext.tools.mcp import StdioServerParams, mcp_server_tools
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 
 
-# ================== 基础配置 ==================
-config_list_codellama = [
-    {
-        "base_url": "http://localhost:11434/v1",
-        "api_key": "sk-111111111111",
-        "model": "llama2:13b"
-    }
-]
-llm_config_codellama = {"config_list": config_list_codellama}
-
-
 model_client = OpenAIChatCompletionClient(
-    model="llama2:13b",
+    model="qwen2.5:14b",
     base_url="http://localhost:11434/v1",
     api_key="NULL",
     model_info={
