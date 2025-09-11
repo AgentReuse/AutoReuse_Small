@@ -4,10 +4,6 @@ from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.ui import Console
 from autogen_ext.tools.mcp import StdioServerParams, mcp_server_tools
 
-from my_llms_client.llms_client import LLMsClient
-
-
-
 semantic_cache = SemanticCache(
     embedding_model_path="./m3e-small",
     cache_path="./semantic_cache"
@@ -23,10 +19,6 @@ config_list_codellama = [
 ]
 llm_config_codellama = {"config_list": config_list_codellama}
 
-
-
-# 模型客户端
-model_client = LLMsClient.qwen_client()
 
 # STDIO MCPServer服务的配置
 calculator_mcp_server = StdioServerParams(
