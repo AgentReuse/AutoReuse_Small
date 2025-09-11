@@ -1,9 +1,13 @@
 import asyncio
 
 import autogen
-from autogen import AssistantAgent, UserProxyAgent, GroupChat, GroupChatManager
+# from autogen import AssistantAgent, UserProxyAgent, GroupChat, GroupChatManager
+from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.ui import Console
 from autogen_ext.tools.mcp import StdioServerParams, mcp_server_tools
+
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+
 
 # ================== 基础配置 ==================
 config_list_codellama = [
@@ -14,6 +18,19 @@ config_list_codellama = [
     }
 ]
 llm_config_codellama = {"config_list": config_list_codellama}
+
+
+model_client = OpenAIChatCompletionClient(
+    model="llama2:13b",
+    base_url="http://localhost:11434/v1",
+    api_key="NULL",
+    model_info={
+            "vision": False,
+            "function_calling": True,
+            "json_output": True,
+            "family": "unknown",
+        },
+)
 
 
 # STDIO MCPServer服务的配置
@@ -29,9 +46,10 @@ async def run_agent(task: str):
     tools = await mcp_server_tools(calculator_mcp_server)
 
     # 创建智能体
-    agent = autogen.AssistantAgent(
+
+    agent = AssistantAgent(
         name="my_agent",
-        llm_config=llm_config_codellama,
+        model_client=model_client,
         tools=tools,
         reflect_on_tool_use=True,
         system_message="你是一个算术大师，使用提供的工具进行算术运算",
