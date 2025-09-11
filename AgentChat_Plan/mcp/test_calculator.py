@@ -4,11 +4,6 @@ from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.ui import Console
 from autogen_ext.tools.mcp import StdioServerParams, mcp_server_tools
 
-semantic_cache = SemanticCache(
-    embedding_model_path="./m3e-small",
-    cache_path="./semantic_cache"
-)
-
 # ================== 基础配置 ==================
 config_list_codellama = [
     {
