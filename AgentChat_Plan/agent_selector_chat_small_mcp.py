@@ -205,20 +205,20 @@ async def run_agent(task: str):
         print("\n=== Coder Output ===\n", coder_output_text)
 
         # ================== 群聊结束后交给 OutputSummarizer 生成计划 ==================
-        post_instruction = {
-            "role": "user",
-            "name": "Orchestrator",
-            "content": (
-                "Please read the entire chat history above and produce a structured EXECUTION PLAN as instructed."
-            ),
-        }
-
-        sum_reply = output_summarizer.generate_reply(messages=history + [post_instruction])
-        plan_text = sum_reply.get("content", "") if isinstance(sum_reply, dict) else str(sum_reply)
-
-        semantic_cache.save_to_cache(task,coder_output_text,plan_text)  #存储响应和计划
-
-        print("\n=== OutputSummarizer PLAN ===\n", plan_text)
+        # post_instruction = {
+        #     "role": "user",
+        #     "name": "Orchestrator",
+        #     "content": (
+        #         "Please read the entire chat history above and produce a structured EXECUTION PLAN as instructed."
+        #     ),
+        # }
+        #
+        # sum_reply = output_summarizer.generate_reply(messages=history + [post_instruction])
+        # plan_text = sum_reply.get("content", "") if isinstance(sum_reply, dict) else str(sum_reply)
+        #
+        # semantic_cache.save_to_cache(task,coder_output_text,plan_text)  #存储响应和计划
+        #
+        # print("\n=== OutputSummarizer PLAN ===\n", plan_text)
 
     # elif isReuse == 1:
     #     plan_text=cached_data["plan"]
