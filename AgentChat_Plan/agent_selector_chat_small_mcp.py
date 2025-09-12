@@ -96,7 +96,7 @@ async def run_agent(task: str):
             ),
         )
 
-        coder = UserProxyAgent(
+        coder = AssistantAgent(
             name="Coder",
             model_client=model_client,
             system_message=(
@@ -106,8 +106,9 @@ async def run_agent(task: str):
                 "deliverables & acceptance criteria; rough timeline; risks & mitigations. "
                 "End with TERMINATE if complete, else CONTINUE."
             ),
-            code_execution_config={"work_dir": "output/coding", "use_docker": False},
+            #code_execution_config={"work_dir": "output/coding", "use_docker": False},
         )
+
 
         general_agent = AssistantAgent(
             name="General_agent",
