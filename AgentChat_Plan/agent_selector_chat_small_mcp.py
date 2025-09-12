@@ -83,59 +83,57 @@ async def run_agent(task: str):
     #Test
     isReuse = 0
 
+    # ================== 定义 Agents ==================
+    output_summarizer = AssistantAgent(
+        name="OutputSummarizer",
+        model_client=model_client,
+        system_message=(
+            "You will receive the full chat history after the group chat ends. "
+            "Read it and produce a clear, step-by-step EXECUTION PLAN with:"
+            " objectives & scope; tasks/milestones; owners (by agent names); "
+            "deliverables & acceptance criteria; rough timeline; risks & mitigations. "
+            "End with TERMINATE if complete, else CONTINUE."
+        ),
+    )
+
+    coder = AssistantAgent(
+        name="Coder",
+        model_client=model_client,
+        system_message=(
+            "You are a highly skilled coder agent responsible for writing, checking, and improving code based on the user’s requests. You must produce correct, efficient, and well-documented code, verify syntax and logic, and point out or fix potential bugs or improvements when necessary. Ensure that your responses are precise, concise, and directly actionable. Always provide complete solutions unless explicitly asked for partial output. Reply TERMINATE in the end of the response if the task has been solved at full satisfaction. Otherwise, reply CONTINUE, or explain the reason why the task is not solved yet."
+        ),
+        #code_execution_config={"work_dir": "output/coding", "use_docker": False},
+    )
+
+    general_agent = AssistantAgent(
+        name="General_agent",
+        model_client=model_client,
+        system_message="You are General_agent, a versatile assistant responsible for handling tasks when no specialized agent is available. You should read the conversation context carefully and provide helpful, coherent, and logically consistent outputs. Your role is to fill in gaps, perform general reasoning, answer questions, or provide basic coding or documentation support as needed. Do not attempt to take over specialized responsibilities that belong to domain-specific agents unless explicitly required. Always ensure clarity, conciseness, and accuracy in your responses. Reply TERMINATE if the task has been solved at full satisfaction. Otherwise, reply CONTINUE, or explain the reason why the task is not solved yet.",
+    )
+
+    # user_proxy = autogen.UserProxyAgent(
+    #     name="user_proxy",
+    #     human_input_mode="NEVER",
+    #     max_consecutive_auto_reply=10,
+    #     llm_config=llm_config_codellama,
+    #     is_termination_msg=agent_is_term,
+    #     code_execution_config={"work_dir": "coding", "use_docker": False},
+    #     system_message=(
+    #         "Reply TERMINATE at the end of your response if the task has been solved at full satisfaction. "
+    #         "Otherwise, reply CONTINUE, or explain why not solved yet."
+    #     ),
+    # )
+
     if isReuse == 0:
-        # ================== 定义 Agents ==================
-        output_summarizer = AssistantAgent(
-            name="OutputSummarizer",
-            model_client=model_client,
-            system_message=(
-                "You will receive the full chat history after the group chat ends. "
-                "Read it and produce a clear, step-by-step EXECUTION PLAN with:"
-                " objectives & scope; tasks/milestones; owners (by agent names); "
-                "deliverables & acceptance criteria; rough timeline; risks & mitigations. "
-                "End with TERMINATE if complete, else CONTINUE."
-            ),
-        )
-
-        coder = AssistantAgent(
-            name="Coder",
-            model_client=model_client,
-            system_message=(
-                "You are a highly skilled coder agent responsible for writing, checking, and improving code based on the user’s requests. You must produce correct, efficient, and well-documented code, verify syntax and logic, and point out or fix potential bugs or improvements when necessary. Ensure that your responses are precise, concise, and directly actionable. Always provide complete solutions unless explicitly asked for partial output. Reply TERMINATE in the end of the response if the task has been solved at full satisfaction. Otherwise, reply CONTINUE, or explain the reason why the task is not solved yet."
-            ),
-            #code_execution_config={"work_dir": "output/coding", "use_docker": False},
-        )
-
-
-        general_agent = AssistantAgent(
-            name="General_agent",
-            model_client=model_client,
-            system_message="You are General_agent, a versatile assistant responsible for handling tasks when no specialized agent is available. You should read the conversation context carefully and provide helpful, coherent, and logically consistent outputs. Your role is to fill in gaps, perform general reasoning, answer questions, or provide basic coding or documentation support as needed. Do not attempt to take over specialized responsibilities that belong to domain-specific agents unless explicitly required. Always ensure clarity, conciseness, and accuracy in your responses. Reply TERMINATE if the task has been solved at full satisfaction. Otherwise, reply CONTINUE, or explain the reason why the task is not solved yet.",
-        )
-
-        # user_proxy = autogen.UserProxyAgent(
-        #     name="user_proxy",
-        #     human_input_mode="NEVER",
-        #     max_consecutive_auto_reply=10,
-        #     llm_config=llm_config_codellama,
-        #     is_termination_msg=agent_is_term,
-        #     code_execution_config={"work_dir": "coding", "use_docker": False},
-        #     system_message=(
-        #         "Reply TERMINATE at the end of your response if the task has been solved at full satisfaction. "
-        #         "Otherwise, reply CONTINUE, or explain why not solved yet."
-        #     ),
-        # )
-
         selector_prompt = """
-            Now select the agent to execute the task.
-            {roles}
-            Current conversation context:
-            {history}
-            Read the above conversation and then choose one agent from {participants} to perform the next task.
-            Ensure that the chosen agent is a professional agent with skills suitable for this conversation; if no such specialized agent is available, select General_agent.
-            Select only one agent.
-        """
-
+                Now select the agent to execute the task.
+                {roles}
+                Current conversation context:
+                {history}
+                Read the above conversation and then choose one agent from {participants} to perform the next task.
+                Ensure that the chosen agent is a professional agent with skills suitable for this conversation; if no such specialized agent is available, select General_agent.
+                Select only one agent.
+            """
         # 终止条件
         text_termination = TextMentionTermination("TERMINATE")
         max_message_termination = MaxMessageTermination(max_messages=25)
@@ -166,7 +164,7 @@ async def run_agent(task: str):
         #print("-------------History:--------------")
         #print(history)
 
-        # # =============== 提取 Coder 的输出 ===============
+        # # =============== 提取最后一个对话作为输出 ===============
         exec_result = history[-1]["content"]
         print(f"\n====Execution result====\n\n {exec_result} \n---------")
 
@@ -200,46 +198,53 @@ async def run_agent(task: str):
 
         print("\n=== OutputSummarizer PLAN ===\n", plan_text)
 
-    # elif isReuse == 1:
-    #     plan_text=cached_data["plan"]
-    #
-    #     plan_proxy = autogen.UserProxyAgent(
-    #         name="user_proxy",
-    #         human_input_mode="NEVER",
-    #         max_consecutive_auto_reply=10,
-    #         llm_config=llm_config_codellama,
-    #         is_termination_msg=agent_is_term,
-    #         code_execution_config={"work_dir": "coding", "use_docker": False},
-    #         system_message=plan_text,
-    #     )
-    #
-    #     coder = autogen.AssistantAgent(
-    #         name="Coder",
-    #         llm_config=llm_config_codellama,
-    #         is_termination_msg=agent_is_term,
-    #         code_execution_config={"work_dir": "output/coding", "use_docker": False},
-    #     )
-    #
-    #     groupchat = GroupChat(
-    #         agents=[plan_proxy, coder],
-    #         messages=[],
-    #         max_round=12,
-    #         speaker_selection_method=stop_on_terminate_selector,  # ★ 关键：全局终止控制
-    #     )
-    #     manager = GroupChatManager(groupchat=groupchat, llm_config=llm_config_codellama)
-    #
-    #     # 开始群聊
-    #     plan_proxy.initiate_chat(manager, message=task)
-    #
-    #     history = manager.groupchat.messages  # [{"role":..., "name":..., "content":...}, ...]
-    #
-    #     # =============== 提取 Coder 的输出 ===============
-    #     coder_msgs = [m["content"] for m in history if m.get("name") == "Coder" and m.get("content")]
-    #
-    #     # 拼接成一个字符串（如果你只需要合并结果）
-    #     coder_output_text = "\n\n".join(coder_msgs)
-    #
-    #     print("\n=== Coder Output ===\n", coder_output_text)
+    elif isReuse == 1:
+        plan_text=cached_data["plan"]
+
+        selector_prompt = """
+                        Strictly follow the plan and select the agent to execute the task.
+                        {roles}
+                        Current conversation context:
+                        {history}
+                        Read the above conversation and then choose one agent from {participants} to perform the next task.
+                        Ensure that the chosen agent is a professional agent with skills suitable for this conversation; if no such specialized agent is available, select General_agent.
+                        Select only one agent.
+                    """
+        # 终止条件
+        text_termination = TextMentionTermination("TERMINATE")
+        max_message_termination = MaxMessageTermination(max_messages=25)
+        termination = text_termination | max_message_termination
+
+        # 创建团队
+        team = SelectorGroupChat(
+            [coder, general_agent],  # 可以考虑加一个reviewer之类的，手动增加来回试错,reuse过程中不进行review）
+            model_client=model_client,
+            termination_condition=termination,
+            selector_prompt=selector_prompt,
+            allow_repeated_speaker=True,  # 允许代理连续多轮发言。
+        )
+
+        stream = team.run_stream(task=task
+                                      +" The following is an execution plan for a similar request. This plan was derived from a previous successful completion of a similar task by the system. Strictly follow this plan to accomplish the current request: "
+                                      + plan_text)
+        history = []
+
+        async for message in stream:
+            if isinstance(message, TaskResult):
+                print("停止原因：", message.stop_reason)
+            else:
+                json_message = message.dump()
+                print(f"Speaker: {json_message["source"]}")
+                print(f"{json_message["content"]}\n--------------\n\n")
+                # print(json_message)
+                history.append(json_message)
+
+        # print("-------------History:--------------")
+        # print(history)
+
+        # # =============== 提取最后一个对话作为输出 ===============
+        exec_result = history[-1]["content"]
+        print(f"\n====Execution result====\n\n {exec_result} \n---------")
 
 
     elif isReuse == 2:
