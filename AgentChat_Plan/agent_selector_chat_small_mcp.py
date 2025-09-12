@@ -143,7 +143,7 @@ async def run_agent(task: str):
 
         # 创建团队
         team = SelectorGroupChat(
-            [coder, output_summarizer, general_agent],
+            [coder, general_agent, output_summarizer], #可以考虑加一个reviewer之类的，手动增加来回试错,reuse过程中不进行review）
             model_client=model_client,
             termination_condition=termination,
             selector_prompt=selector_prompt,
@@ -167,28 +167,38 @@ async def run_agent(task: str):
         #print(history)
 
         # # =============== 提取 Coder 的输出 ===============
-        coder_msgs = [m["content"] for m in history if m.get("source") == "Coder" and m.get("content")]
-        #
-        # 拼接成一个字符串（如果你只需要合并结果）
-        coder_output_text = "\n\n".join(coder_msgs)
-
-        print("\n=== Coder Output ===\n", coder_output_text)
+        exec_result = history[-1]["content"]
+        print(f"\n====Execution result====\n\n {exec_result} \n---------")
 
         # ================== 群聊结束后交给 OutputSummarizer 生成计划 ==================
-        # post_instruction = {
-        #     "role": "user",
-        #     "name": "Orchestrator",
-        #     "content": (
-        #         "Please read the entire chat history above and produce a structured EXECUTION PLAN as instructed."
-        #     ),
-        # }
+        print("\n=== Generating Plan ===\n")
+
+        selector_prompt_plan = """
+                    The task is already complete. Now select the output_summarizer agent to summarize the history.
+                    {roles}
+                    Current conversation context:
+                    {history}
+                """
+        stream = team.run_stream(task="The task has been completed. Now, based on the conversation history, summarize a detailed step-by-step plan so that when the multi-agent system encounters the same or similar request in the future, the plan can be directly followed to reproduce the solution. Ensure the plan is clear, structured, and actionable.")
+
+        history_plan = []
+
+        async for message in stream:
+            if isinstance(message, TaskResult):
+                print("停止原因：", message.stop_reason)
+            else:
+                json_message = message.dump()
+                print(f"Speaker: {json_message["source"]}")
+                print(f"{json_message["content"]}\n--------------\n\n")
+                # print(json_message)
+                history_plan.append(json_message)
+
+        # sum_reply = output_summarizer.generate_reply(messages=history)
+        plan_text = [m["content"] for m in history_plan if m.get("source") == "OutputSummarizer" and m.get("content")]
         #
-        # sum_reply = output_summarizer.generate_reply(messages=history + [post_instruction])
-        # plan_text = sum_reply.get("content", "") if isinstance(sum_reply, dict) else str(sum_reply)
-        #
-        # semantic_cache.save_to_cache(task,coder_output_text,plan_text)  #存储响应和计划
-        #
-        # print("\n=== OutputSummarizer PLAN ===\n", plan_text)
+        #semantic_cache.save_to_cache(task,exec_result,plan_text)  #存储响应和计划
+
+        print("\n=== OutputSummarizer PLAN ===\n", plan_text)
 
     # elif isReuse == 1:
     #     plan_text=cached_data["plan"]
