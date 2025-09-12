@@ -189,6 +189,8 @@ async def run_agent(task: str):
                 "raw": event,
             })
 
+            print(f"[{agent}] {content}")
+
         # `event` 完了之后，最后一个 item 应该是 TaskResult
         # 如果你想把 TaskResult 中的历史也拿出来：
         # TaskResult 的类型在 docs 里叫 TaskResult, 包含 .messages 属性
