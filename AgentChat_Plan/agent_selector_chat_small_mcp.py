@@ -81,7 +81,7 @@ async def run_agent(task: str):
         isReuse = 2
 
     #Test
-    isReuse = 0
+    #isReuse = 0
 
     # ================== 定义 Agents ==================
     output_summarizer = AssistantAgent(
