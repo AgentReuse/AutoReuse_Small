@@ -96,7 +96,7 @@ async def run_agent(task: str):
             ),
         )
 
-        coder = AssistantAgent(
+        coder = UserProxyAgent(
             name="Coder",
             model_client=model_client,
             system_message=(
