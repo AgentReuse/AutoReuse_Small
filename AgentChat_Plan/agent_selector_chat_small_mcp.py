@@ -9,6 +9,7 @@ from autogen_agentchat.teams import SelectorGroupChat
 
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_agentchat.conditions import TextMentionTermination, MaxMessageTermination
+from autogen_agentchat.base import TaskResult
 
 import os
 from Response_reuse import SemanticCache
@@ -100,11 +101,7 @@ async def run_agent(task: str):
             name="Coder",
             model_client=model_client,
             system_message=(
-                "You will receive the full chat history after the group chat ends. "
-                "Read it and produce a clear, step-by-step EXECUTION PLAN with:"
-                " objectives & scope; tasks/milestones; owners (by agent names); "
-                "deliverables & acceptance criteria; rough timeline; risks & mitigations. "
-                "End with TERMINATE if complete, else CONTINUE."
+                "You are a highly skilled coder agent responsible for writing, checking, and improving code based on the user’s requests. You must produce correct, efficient, and well-documented code, verify syntax and logic, and point out or fix potential bugs or improvements when necessary. Ensure that your responses are precise, concise, and directly actionable. Always provide complete solutions unless explicitly asked for partial output. Reply TERMINATE in the end of the response if the task has been solved at full satisfaction. Otherwise, reply CONTINUE, or explain the reason why the task is not solved yet."
             ),
             #code_execution_config={"work_dir": "output/coding", "use_docker": False},
         )
@@ -153,54 +150,25 @@ async def run_agent(task: str):
             allow_repeated_speaker=True,  # 允许代理连续多轮发言。
         )
 
-        await Console(team.run_stream(task=task))
-        history = []  # 用来保存所有消息
-        # async for event in team.run_stream(task=task):
-        #     # event 可以是 BaseChatMessage, BaseAgentEvent, 或 TaskResult（最后一个）
-        #     # 根据类型处理
-        #     # 以下假设 event 有属性 `source` 或 `agent_name` 或类似
-        #     # 并且如果是聊天消息，也有 content/text 属性
-        #
-        #     # 将 event 转为字符串
-        #     try:
-        #         # 如果是聊天消息
-        #         content = None
-        #         agent = None
-        #         if hasattr(event, "chat_message"):
-        #             # TaskResult 或者其他复杂类型可能有 chat_message 属性
-        #             cm = event.chat_message
-        #             content = getattr(cm, "content", repr(cm))
-        #             agent = getattr(cm, "source", None) or getattr(cm, "sender", None)
-        #         elif hasattr(event, "content"):
-        #             content = event.content
-        #             agent = getattr(event, "source", None) or getattr(event, "agent", None)
-        #         else:
-        #             # fallback
-        #             content = repr(event)
-        #             agent = None
-        #     except Exception as e:
-        #         content = repr(event)
-        #         agent = None
-        #
-        #     # 保存到 history
-        #     history.append({
-        #         "agent": agent,
-        #         "event": content,
-        #         "raw": event,
-        #     })
-        #
-        #     print(f"[{agent}] {content}")
+        stream = team.run_stream(task=task)
+        history=[]
 
-        # `event` 完了之后，最后一个 item 应该是 TaskResult
-        # 如果你想把 TaskResult 中的历史也拿出来：
-        # TaskResult 的类型在 docs 里叫 TaskResult, 包含 .messages 属性
-        # 可以这样：
-        # 假设最后一个 event 被捕获为 task_result
-        task_result = history[-1]["raw"]
+        async for message in stream:
+            if isinstance(message, TaskResult):
+                print("停止原因：", message.stop_reason)
+            else:
+                json_message=message.dump()
+                print(f"Speaker: {json_message["source"]}")
+                print(f"{json_message["content"]}\n--------------\n\n")
+                #print(json_message)
+                history.append(json_message)
 
-        # =============== 提取 Coder 的输出 ===============
-        coder_msgs = [m["content"] for m in history if m.get("name") == "Coder" and m.get("content")]
+        #print("-------------History:--------------")
+        #print(history)
 
+        # # =============== 提取 Coder 的输出 ===============
+        coder_msgs = [m["content"] for m in history if m.get("source") == "Coder" and m.get("content")]
+        #
         # 拼接成一个字符串（如果你只需要合并结果）
         coder_output_text = "\n\n".join(coder_msgs)
 
