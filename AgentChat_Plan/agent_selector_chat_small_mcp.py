@@ -153,43 +153,43 @@ async def run_agent(task: str):
             allow_repeated_speaker=True,  # 允许代理连续多轮发言。
         )
 
-        # await Console(team.run_stream(task=task))
+        await Console(team.run_stream(task=task))
         history = []  # 用来保存所有消息
-        async for event in team.run_stream(task=task):
-            # event 可以是 BaseChatMessage, BaseAgentEvent, 或 TaskResult（最后一个）
-            # 根据类型处理
-            # 以下假设 event 有属性 `source` 或 `agent_name` 或类似
-            # 并且如果是聊天消息，也有 content/text 属性
-
-            # 将 event 转为字符串
-            try:
-                # 如果是聊天消息
-                content = None
-                agent = None
-                if hasattr(event, "chat_message"):
-                    # TaskResult 或者其他复杂类型可能有 chat_message 属性
-                    cm = event.chat_message
-                    content = getattr(cm, "content", repr(cm))
-                    agent = getattr(cm, "source", None) or getattr(cm, "sender", None)
-                elif hasattr(event, "content"):
-                    content = event.content
-                    agent = getattr(event, "source", None) or getattr(event, "agent", None)
-                else:
-                    # fallback
-                    content = repr(event)
-                    agent = None
-            except Exception as e:
-                content = repr(event)
-                agent = None
-
-            # 保存到 history
-            history.append({
-                "agent": agent,
-                "event": content,
-                "raw": event,
-            })
-
-            print(f"[{agent}] {content}")
+        # async for event in team.run_stream(task=task):
+        #     # event 可以是 BaseChatMessage, BaseAgentEvent, 或 TaskResult（最后一个）
+        #     # 根据类型处理
+        #     # 以下假设 event 有属性 `source` 或 `agent_name` 或类似
+        #     # 并且如果是聊天消息，也有 content/text 属性
+        #
+        #     # 将 event 转为字符串
+        #     try:
+        #         # 如果是聊天消息
+        #         content = None
+        #         agent = None
+        #         if hasattr(event, "chat_message"):
+        #             # TaskResult 或者其他复杂类型可能有 chat_message 属性
+        #             cm = event.chat_message
+        #             content = getattr(cm, "content", repr(cm))
+        #             agent = getattr(cm, "source", None) or getattr(cm, "sender", None)
+        #         elif hasattr(event, "content"):
+        #             content = event.content
+        #             agent = getattr(event, "source", None) or getattr(event, "agent", None)
+        #         else:
+        #             # fallback
+        #             content = repr(event)
+        #             agent = None
+        #     except Exception as e:
+        #         content = repr(event)
+        #         agent = None
+        #
+        #     # 保存到 history
+        #     history.append({
+        #         "agent": agent,
+        #         "event": content,
+        #         "raw": event,
+        #     })
+        #
+        #     print(f"[{agent}] {content}")
 
         # `event` 完了之后，最后一个 item 应该是 TaskResult
         # 如果你想把 TaskResult 中的历史也拿出来：
