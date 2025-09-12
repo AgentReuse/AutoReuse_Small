@@ -174,10 +174,12 @@ async def run_agent(task: str):
         selector_prompt_plan = """
                     The task is already complete. Now select the output_summarizer agent to summarize the history.
                     {roles}
-                    Current conversation context:
-                    {history}
-                """
-        stream = team.run_stream(task="The task has been completed. Now, based on the conversation history, summarize a detailed step-by-step plan so that when the multi-agent system encounters the same or similar request in the future, the plan can be directly followed to reproduce the solution. Ensure the plan is clear, structured, and actionable.")
+                    """
+        stream = team.run_stream(task="The task has been completed. Based on the conversation history, "
+                                      "summarize only the essential step-by-step execution plan that can "
+                                      "be directly followed by the multi-agent system to reproduce the solution "
+                                      "for the same or similar request in the future. Exclude any analysis or unnecessary dialogue. "
+                                      "Provide only the core actionable plan.")
 
         history_plan = []
 
