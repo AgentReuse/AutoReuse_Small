@@ -1,5 +1,6 @@
 import autogen
 import asyncio
+import argparse
 # from autogen import AssistantAgent, UserProxyAgent, GroupChat, GroupChatManager
 
 from autogen_agentchat.agents import AssistantAgent,UserProxyAgent
@@ -301,6 +302,15 @@ async def run_agent(task: str):
     elif isReuse == 2:
         response=cached_data["response"]
 
+
 if __name__ == '__main__':
-    task = "Write a code in python to train a CNN model in MNIST-10."
-    asyncio.run(run_agent(task=task))
+    parser = argparse.ArgumentParser(description="AutoReuse runner")
+    parser.add_argument(
+        "--task",
+        type=str,
+        required=True,
+        help="The task description for the agent"
+    )
+    args = parser.parse_args()
+
+    asyncio.run(run_agent(task=args.task))
