@@ -88,6 +88,17 @@ async def run_agent(task: str):
     #isReuse = 0
 
     # ================== 定义 Agents ==================
+    reviewer = AssistantAgent(
+        name="Reviewer",
+        model_client=model_client,
+        system_message=(
+            """You are ReviewerAgent. After another agent completes a task, check whether the output correctly 
+            fulfills the user’s request. Do not question the professional quality—only verify that the output 
+            matches the requirements. If the output is satisfactory, organize and present that output in full 
+            as the final result of this request and reply TERMINATE. If not, list the specific issues or mismatches."""
+        ),
+    )
+
     output_summarizer = AssistantAgent(
         name="OutputSummarizer",
         model_client=model_client,
@@ -104,7 +115,13 @@ async def run_agent(task: str):
         name="Coder",
         model_client=model_client,
         system_message=(
-            "You are a highly skilled coder agent responsible for writing, checking, and improving code based on the user’s requests. You must produce correct, efficient, and well-documented code, verify syntax and logic, and point out or fix potential bugs or improvements when necessary. Ensure that your responses are precise, concise, and directly actionable. Always provide complete solutions unless explicitly asked for partial output. Reply TERMINATE in the end of the response if the task has been solved at full satisfaction. Otherwise, reply CONTINUE, or explain the reason why the task is not solved yet."
+            """You are a highly skilled coder agent responsible for writing, checking, 
+            and improving code based on the user’s requests. You must produce correct, 
+            efficient, and well-documented code, verify syntax and logic, and point out 
+            or fix potential bugs or improvements when necessary. Ensure that your 
+            responses are precise, concise, and directly actionable. 
+            Always provide complete solutions unless explicitly asked for partial output. 
+            After completing the task, output REVIEW to indicate that the result should be checked by ReviewerAgent."""
         ),
         #code_execution_config={"work_dir": "output/coding", "use_docker": False},
     )
@@ -112,7 +129,14 @@ async def run_agent(task: str):
     general_agent = AssistantAgent(
         name="General_agent",
         model_client=model_client,
-        system_message="You are General_agent, a versatile assistant responsible for handling tasks when no specialized agent is available. You should read the conversation context carefully and provide helpful, coherent, and logically consistent outputs. Your role is to fill in gaps, perform general reasoning, answer questions, or provide basic coding or documentation support as needed. Do not attempt to take over specialized responsibilities that belong to domain-specific agents unless explicitly required. Always ensure clarity, conciseness, and accuracy in your responses. Reply TERMINATE if the task has been solved at full satisfaction. Otherwise, reply CONTINUE, or explain the reason why the task is not solved yet.",
+        system_message=
+        """You are General_agent, a versatile assistant responsible for handling tasks when no specialized agent is available. 
+        You should read the conversation context carefully and provide helpful, coherent, 
+        and logically consistent outputs. Your role is to fill in gaps, perform general reasoning, 
+        answer questions, or provide basic coding or documentation support as needed. 
+        Do not attempt to take over specialized responsibilities that belong to domain-specific 
+        agents unless explicitly required. Always ensure clarity, conciseness, and accuracy in your responses. 
+        After completing the task, output REVIEW to indicate that the result should be checked by ReviewerAgent.""",
     )
 
     navigation_agent = AssistantAgent(
@@ -130,7 +154,7 @@ async def run_agent(task: str):
                 1. A clear route plan or sequence of waypoints.
                 2. Estimated distances or times if possible.
                 
-                Reply TERMINATE if you have provided a full and satisfactory navigation plan. Otherwise, reply CONTINUE, or explain why the task is not yet solved.
+                After completing the task, output REVIEW to indicate that the result should be checked by ReviewerAgent.
             """,
     )
 
@@ -155,6 +179,7 @@ async def run_agent(task: str):
                 {history}
                 Read the above conversation and then choose one agent from {participants} to perform the next task.
                 Ensure that the chosen agent is a professional agent with skills suitable for this conversation; if no such specialized agent is available, select General_agent.
+                If any agent has mentioned REVIEW, then select Reviewer.
                 Select only one agent.
             """
         # 终止条件
@@ -233,6 +258,7 @@ async def run_agent(task: str):
                         {history}
                         Read the above conversation and then choose one agent from {participants} to perform the next task.
                         Ensure that the chosen agent is a professional agent with skills suitable for this conversation; if no such specialized agent is available, select General_agent.
+                        If any agent has mentioned REVIEW, then select ReviewerAgent.
                         Select only one agent.
                     """
         # 终止条件
