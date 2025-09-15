@@ -302,5 +302,5 @@ async def run_agent(task: str):
         response=cached_data["response"]
 
 if __name__ == '__main__':
-    task = "规划从浙江省宁波市学府路5号浙江大学宁波科创中心到浙江省杭州市浙江大学紫金港校区的出行路线，可以搭乘高铁"
+    task = "Write a code in python to train a CNN model in MNIST-10."
     asyncio.run(run_agent(task=task))
