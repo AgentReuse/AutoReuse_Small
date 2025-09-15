@@ -16,7 +16,7 @@ from Response_reuse import SemanticCache
 
 
 model_client = OpenAIChatCompletionClient(
-    model="qwen2.5:14b",
+    model="qwen3:30b",
     base_url="http://localhost:11434/v1",
     api_key="NULL",
     model_info={
