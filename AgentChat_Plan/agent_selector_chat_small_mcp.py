@@ -4,7 +4,7 @@ import asyncio
 
 from autogen_agentchat.agents import AssistantAgent,UserProxyAgent
 from autogen_agentchat.ui import Console
-from autogen_ext.tools.mcp import StdioServerParams, mcp_server_tools
+from autogen_ext.tools.mcp import StdioServerParams, mcp_server_tools, SseServerParams
 from autogen_agentchat.teams import SelectorGroupChat
 
 from autogen_ext.models.openai import OpenAIChatCompletionClient
@@ -27,12 +27,15 @@ model_client = OpenAIChatCompletionClient(
         },
 )
 
-
-
 # STDIO MCPServer服务的配置
 calculator_mcp_server = StdioServerParams(
     command="python",
     args=["mcp/calculator_server.py"]
+)
+
+# 高德地图SSE
+gaode_server_params = SseServerParams(
+    url="https://mcp.amap.com/sse?key=c46c2b1b530d3d92eb4e3dfb3da32a60"
 )
 
 semantic_cache = SemanticCache(
@@ -68,6 +71,7 @@ def stop_on_terminate_selector(last_speaker, groupchat):
 async def run_agent(task: str):
     #先加载mcp工具
     mcp_tool_calculator = await mcp_server_tools(calculator_mcp_server)
+    mcp_tool_gaodemap = await mcp_server_tools(gaode_server_params)
 
     embedding = semantic_cache.get_embedding(task)             #向量化
     similar_question, score, cached_data = semantic_cache.search_similar_query(embedding)   #相似性搜索
@@ -111,6 +115,23 @@ async def run_agent(task: str):
         system_message="You are General_agent, a versatile assistant responsible for handling tasks when no specialized agent is available. You should read the conversation context carefully and provide helpful, coherent, and logically consistent outputs. Your role is to fill in gaps, perform general reasoning, answer questions, or provide basic coding or documentation support as needed. Do not attempt to take over specialized responsibilities that belong to domain-specific agents unless explicitly required. Always ensure clarity, conciseness, and accuracy in your responses. Reply TERMINATE if the task has been solved at full satisfaction. Otherwise, reply CONTINUE, or explain the reason why the task is not solved yet.",
     )
 
+    navigation_agent = AssistantAgent(
+        name="navigation_agent",
+        model_client=model_client,
+        tools=mcp_tool_gaodemap,
+        reflect_on_tool_use=True,
+        system_message="""
+                You are NavigationAgent, a specialized agent with access to a navigation tool that can plan routes, 
+                retrieve map data, compute distances, directions, and waypoints. 
+                When given a navigation request, you must use the provided navigation tool to produce a plan or set 
+                of directions that are accurate, efficient, and safe. 
+                Always verify that the map data / waypoints used are valid. 
+                Your responses should include:
+                1. A clear route plan or sequence of waypoints.
+                2. Estimated distances or times if possible.
+            """,
+    )
+
     # user_proxy = autogen.UserProxyAgent(
     #     name="user_proxy",
     #     human_input_mode="NEVER",
@@ -141,7 +162,7 @@ async def run_agent(task: str):
 
         # 创建团队
         team = SelectorGroupChat(
-            [coder, general_agent, output_summarizer], #可以考虑加一个reviewer之类的，手动增加来回试错,reuse过程中不进行review）
+            [coder, general_agent, output_summarizer, navigation_agent], #可以考虑加一个reviewer之类的，手动增加来回试错,reuse过程中不进行review）
             model_client=model_client,
             termination_condition=termination,
             selector_prompt=selector_prompt,
@@ -219,7 +240,7 @@ async def run_agent(task: str):
 
         # 创建团队
         team = SelectorGroupChat(
-            [coder, general_agent],  # 可以考虑加一个reviewer之类的，手动增加来回试错,reuse过程中不进行review）
+            [coder, general_agent, navigation_agent],  # 可以考虑加一个reviewer之类的，手动增加来回试错,reuse过程中不进行review）
             model_client=model_client,
             termination_condition=termination,
             selector_prompt=selector_prompt,
@@ -253,5 +274,5 @@ async def run_agent(task: str):
         response=cached_data["response"]
 
 if __name__ == '__main__':
-    task = "Write a python script to perform a quick sort."
+    task = "规划从浙江省宁波市学府路5号浙江大学宁波科创中心到浙江省杭州市浙江大学紫金港校区的出行路线，可以搭乘高铁"
     asyncio.run(run_agent(task=task))
