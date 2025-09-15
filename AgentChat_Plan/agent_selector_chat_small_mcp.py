@@ -189,7 +189,7 @@ async def run_agent(task: str):
 
         # 创建团队
         team = SelectorGroupChat(
-            [coder, general_agent, output_summarizer, navigation_agent], #可以考虑加一个reviewer之类的，手动增加来回试错,reuse过程中不进行review）
+            [reviewer, coder, general_agent, output_summarizer, navigation_agent], #可以考虑加一个reviewer之类的，手动增加来回试错,reuse过程中不进行review）
             model_client=model_client,
             termination_condition=termination,
             selector_prompt=selector_prompt,
@@ -268,7 +268,7 @@ async def run_agent(task: str):
 
         # 创建团队
         team = SelectorGroupChat(
-            [coder, general_agent, navigation_agent],  # 可以考虑加一个reviewer之类的，手动增加来回试错,reuse过程中不进行review）
+            [reviewer,coder, general_agent, navigation_agent],  # 可以考虑加一个reviewer之类的，手动增加来回试错,reuse过程中不进行review）
             model_client=model_client,
             termination_condition=termination,
             selector_prompt=selector_prompt,
