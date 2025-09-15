@@ -69,7 +69,7 @@ def stop_on_terminate_selector(last_speaker, groupchat):
     idx = agents.index(last_speaker)
     return agents[(idx + 1) % len(agents)]
 
-async def run_agent(task: str):
+async def run_agent(task: str,enable_reuse: bool):
     #先加载mcp工具
     mcp_tool_calculator = await mcp_server_tools(calculator_mcp_server)
     mcp_tool_gaodemap = await mcp_server_tools(gaode_server_params)
@@ -172,7 +172,7 @@ async def run_agent(task: str):
     #     ),
     # )
 
-    if isReuse == 0:
+    if isReuse == 0 or not enable_reuse:
         selector_prompt = """
                 Now select the agent to execute the task.
                 {roles}
@@ -245,7 +245,8 @@ async def run_agent(task: str):
         # sum_reply = output_summarizer.generate_reply(messages=history)
         plan_text = [m["content"] for m in history_plan if m.get("source") == "OutputSummarizer" and m.get("content")]
         #
-        #semantic_cache.save_to_cache(task,exec_result,plan_text)  #存储响应和计划
+        if enable_reuse:
+            semantic_cache.save_to_cache(task,exec_result,plan_text)  #存储响应和计划
 
         print("\n=== OutputSummarizer PLAN ===\n", plan_text)
 
@@ -311,6 +312,11 @@ if __name__ == '__main__':
         required=True,
         help="The task description for the agent"
     )
+    parser.add_argument(
+        "--enable_reuse",
+        action="store_true",
+        help="Enable reuse flag (default: False)"
+    )
     args = parser.parse_args()
 
-    asyncio.run(run_agent(task=args.task))
+    asyncio.run(run_agent(task=args.task,enable_reuse=args.enable_reuse))
