@@ -129,6 +129,8 @@ async def run_agent(task: str):
                 Your responses should include:
                 1. A clear route plan or sequence of waypoints.
                 2. Estimated distances or times if possible.
+                
+                Reply TERMINATE if you have provided a full and satisfactory navigation plan. Otherwise, reply CONTINUE, or explain why the task is not yet solved.
             """,
     )
 
