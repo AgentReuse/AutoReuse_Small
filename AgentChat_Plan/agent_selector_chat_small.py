@@ -172,3 +172,5 @@ elif isReuse == 1:
 
 elif isReuse == 2:
     response=cached_data["response"]
+    print("----------------------RESPONSE-----------------------------")
+    print(response)

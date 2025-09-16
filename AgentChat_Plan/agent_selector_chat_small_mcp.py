@@ -34,6 +34,16 @@ calculator_mcp_server = StdioServerParams(
     args=["mcp/calculator_server.py"]
 )
 
+web_search_mcp_server = StdioServerParams(
+    command="python",
+    args=["mcp/web_search_server.py"]
+)
+
+web_fetch_mcp_server = StdioServerParams(
+    command="python",
+    args=["mcp/web_fetch_server.py"]
+)
+
 # 高德地图SSE
 gaode_server_params = SseServerParams(
     url="https://mcp.amap.com/sse?key=c46c2b1b530d3d92eb4e3dfb3da32a60"
@@ -72,6 +82,8 @@ def stop_on_terminate_selector(last_speaker, groupchat):
 async def run_agent(task: str,enable_reuse: bool):
     #先加载mcp工具
     mcp_tool_calculator = await mcp_server_tools(calculator_mcp_server)
+    mcp_tool_web_search = await mcp_server_tools(web_search_mcp_server)
+    mcp_tool_web_fetch = await mcp_server_tools(web_fetch_mcp_server)
     mcp_tool_gaodemap = await mcp_server_tools(gaode_server_params)
 
     embedding = semantic_cache.get_embedding(task)             #向量化
@@ -159,6 +171,48 @@ async def run_agent(task: str,enable_reuse: bool):
             """,
     )
 
+    web_search_agent = AssistantAgent(
+        name="web_search_agent",
+        model_client=model_client,
+        tools=mcp_tool_web_search,
+        reflect_on_tool_use=True,
+        system_message="""
+                You are web_search_agent. Your role is to perform web search queries 
+                using the provided tool `web_search`.
+        
+                Instructions:
+                1. Always use the `web_search` tool when the user provides a query.
+                2. Return the complete raw JSON response from the tool. 
+                   Do not summarize, truncate, or alter any fields.
+                3. Do not call unrelated tools such as `fetch_page`, `follow_links`, 
+                   or `fetch_dynamic_page` in this agent. Only `web_search` is allowed.
+                4. If the search result contains multiple items, preserve the order 
+                   and output them exactly as returned.
+                5. Wrap the JSON output in a fenced code block with ```json for clarity.
+            """,
+    )
+
+    web_fetch_agent = AssistantAgent(
+        name="web_fetch_agent",
+        model_client=model_client,
+        tools=mcp_tool_web_fetch,
+        reflect_on_tool_use=True,
+        system_message="""
+                You are web_fetch_agent. Your role is to retrieve and explore web pages 
+                using the provided tools: `fetch_page`, `follow_links`, and `fetch_dynamic_page`.
+        
+                Instructions:
+                1. When asked to extract text or metadata from a web page, use `fetch_page`.
+                2. When asked to list or explore links on a web page, use `follow_links`.
+                3. When asked to render or scrape dynamically generated content 
+                   (JavaScript-rendered), use `fetch_dynamic_page`.
+                4. Always return the complete raw JSON response from the tool without 
+                   truncating, summarizing, or reformatting fields.
+                5. Wrap the JSON output in a fenced code block with ```json for clarity.
+                6. Do not call unrelated tools that are not part of this agent.
+            """,
+    )
+
     # user_proxy = autogen.UserProxyAgent(
     #     name="user_proxy",
     #     human_input_mode="NEVER",
@@ -190,7 +244,7 @@ async def run_agent(task: str,enable_reuse: bool):
 
         # 创建团队
         team = SelectorGroupChat(
-            [reviewer, coder, general_agent, output_summarizer, navigation_agent], #可以考虑加一个reviewer之类的，手动增加来回试错,reuse过程中不进行review）
+            [reviewer, coder, general_agent, output_summarizer, navigation_agent, web_search_agent, web_fetch_agent], # 可以考虑加一个reviewer之类的，手动增加来回试错,reuse过程中不进行review）
             model_client=model_client,
             termination_condition=termination,
             selector_prompt=selector_prompt,
@@ -270,7 +324,7 @@ async def run_agent(task: str,enable_reuse: bool):
 
         # 创建团队
         team = SelectorGroupChat(
-            [reviewer,coder, general_agent, navigation_agent],  # 可以考虑加一个reviewer之类的，手动增加来回试错,reuse过程中不进行review）
+            [reviewer,coder, general_agent, navigation_agent, web_fetch_mcp_server, web_fetch_mcp_server],  # 可以考虑加一个reviewer之类的，手动增加来回试错,reuse过程中不进行review）
             model_client=model_client,
             termination_condition=termination,
             selector_prompt=selector_prompt,
