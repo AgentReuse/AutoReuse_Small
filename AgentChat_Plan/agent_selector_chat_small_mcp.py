@@ -116,15 +116,22 @@ async def run_agent(task: str,enable_reuse: bool):
         ),
     )
 
-    output_summarizer = AssistantAgent(
-        name="OutputSummarizer",
+    plan_generator = AssistantAgent(
+        name="PlanGenerator",
         model_client=model_client,
         system_message=(
-            "You will receive the full chat history after the group chat ends. "
-            "Read it and produce a clear, step-by-step EXECUTION PLAN with:"
-            " objectives & scope; tasks/milestones; owners (by agent names); "
-            "deliverables & acceptance criteria; rough timeline; risks & mitigations. "
-            "End with TERMINATE if complete, else CONTINUE."
+            """
+            You are a planning agent. Your job is to analyze the full chat history after the group chat ends, 
+            extract only the steps where real progress was made toward solving the task, and rewrite them as a 
+            reproducible plan for this multi-agent system. Break down the completed task into smaller actionable 
+            subtasks and assign them to the appropriate agents. Use the following format for task assignment:
+            <agent> : <task>
+            <agent> : <task>
+            …
+            Ensure the plan is minimal, precise, and directly usable to reproduce the solution in future runs. 
+            Do not add unnecessary content such as risks, mitigations, timelines, or commentary. 
+            End with TERMINATE if complete, else CONTINUE.
+            """
         ),
     )
 
@@ -237,7 +244,7 @@ async def run_agent(task: str,enable_reuse: bool):
 
         # 创建团队
         team = SelectorGroupChat(
-            [reviewer, coder, general_agent, output_summarizer, navigation_agent, web_search_agent, web_fetch_agent], # 可以考虑加一个reviewer之类的，手动增加来回试错,reuse过程中不进行review）
+            [reviewer, coder, general_agent, plan_generator, navigation_agent, web_search_agent, web_fetch_agent], # 可以考虑加一个reviewer之类的，手动增加来回试错,reuse过程中不进行review）
             model_client=model_client,
             termination_condition=termination,
             selector_prompt=selector_prompt,
@@ -268,7 +275,7 @@ async def run_agent(task: str,enable_reuse: bool):
         print("\n=== Generating Plan ===\n")
 
         selector_prompt_plan = """
-                    The task is already complete. Now select the output_summarizer agent to summarize the history.
+                    The task is already complete. Now select the plan_generator agent to summarize the history.
                     {roles}
                     """
         stream = team.run_stream(task="The task has been completed. Based on the conversation history, "
@@ -289,7 +296,7 @@ async def run_agent(task: str,enable_reuse: bool):
                 # print(json_message)
                 history_plan.append(json_message)
 
-        # sum_reply = output_summarizer.generate_reply(messages=history)
+        # sum_reply = plan_generator.generate_reply(messages=history)
         plan_text = [m["content"] for m in history_plan if m.get("source") == "OutputSummarizer" and m.get("content")]
         if enable_reuse:
             semantic_cache.save_to_cache(task,exec_result,plan_text)  #存储响应和计划
