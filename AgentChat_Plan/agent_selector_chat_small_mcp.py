@@ -275,10 +275,10 @@ async def run_agent(task: str,enable_reuse: bool):
         print("\n=== Generating Plan ===\n")
 
         selector_prompt_plan = """
-                    The task is already complete. Now select the plan_generator agent to summarize the history.
-                    {roles}
+                    The task is already complete. Now select the PlanGenerator agent to summarize the history.
                     """
-        stream = team.run_stream(task="The task has been completed. Based on the conversation history, "
+
+        stream = team.run_stream(task="The task has been completed. Based on the conversation history, use the PlanGenerator to "
                                       "summarize only the essential step-by-step execution plan that can "
                                       "be directly followed by the multi-agent system to reproduce the solution "
                                       "for the same or similar request in the future. Exclude any analysis or unnecessary dialogue. "
@@ -298,6 +298,8 @@ async def run_agent(task: str,enable_reuse: bool):
 
         # sum_reply = plan_generator.generate_reply(messages=history)
         plan_text = [m["content"] for m in history_plan if m.get("source") == "PlanGenerator" and m.get("content")]
+        print("\n=== OutputSummarizer PLAN ===\n", plan_text)
+        
         if enable_reuse:
             semantic_cache.save_to_cache(task,exec_result,plan_text)  #存储响应和计划
 
