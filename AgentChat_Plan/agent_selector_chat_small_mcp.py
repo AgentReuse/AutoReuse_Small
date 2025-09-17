@@ -226,6 +226,8 @@ async def run_agent(task: str,enable_reuse: bool):
     #     ),
     # )
 
+    print(f"\n====isReuse====\n\n {isReuse} \n---------")
+
     if isReuse == 0 or not enable_reuse:
         selector_prompt = """
                 Now select the agent to execute the task.
@@ -357,6 +359,7 @@ async def run_agent(task: str,enable_reuse: bool):
 
     elif isReuse == 2:
         response=cached_data["response"]
+        print(f"\n====Execution result====\n\n {response} \n---------")
 
     end = time.time()
 
