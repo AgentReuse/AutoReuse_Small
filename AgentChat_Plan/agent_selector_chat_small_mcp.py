@@ -297,9 +297,9 @@ async def run_agent(task: str,enable_reuse: bool):
                 history_plan.append(json_message)
 
         # sum_reply = plan_generator.generate_reply(messages=history)
-        plan_text = [m["content"] for m in history_plan if m.get("source") == "PlanGenerator" and m.get("content")]
+        plan_text = str([m["content"] for m in history_plan if m.get("source") == "PlanGenerator" and m.get("content")])
         print("\n=== OutputSummarizer PLAN ===\n", plan_text)
-        
+
         if enable_reuse:
             semantic_cache.save_to_cache(task,exec_result,plan_text)  #存储响应和计划
 
