@@ -126,16 +126,15 @@ async def run_agent(task: str,enable_reuse: bool):
             model_client=model_client,
             system_message=(
                 """
-                You are a planning agent. Your job is to analyze the full chat history after the group chat ends, 
-                extract only the steps where real progress was made toward solving the task, and rewrite them as a 
-                reproducible plan for this multi-agent system. Break down the completed task into smaller actionable 
-                subtasks and assign them to the appropriate agents. Use the following format for task assignment:
-                <agent> : <task>
-                <agent> : <task>
+                You are a planning agent. After the group chat ends, read the full conversation history and extract only 
+                the steps where real progress was made. Generate a reproducible plan that the multi-agent system can follow 
+                for similar future requests. Always determine the correct agent names from the history (sources) instead of 
+                inventing new ones. When assigning tasks, do not include specific parameters or detailed values—abstract 
+                them so the same plan can be reused. Break down the task into smaller subtasks and assign them clearly in the following format:
+                <agent> : <abstract task description>
+                <agent> : <abstract task description>
                 …
-                Ensure the plan is minimal, precise, and directly usable to reproduce the solution in future runs. 
-                Do not add unnecessary content such as risks, mitigations, timelines, or commentary. 
-                End with TERMINATE if complete, else CONTINUE.
+                Ensure the plan is concise, executable, and contains only the essential steps needed for reproduction. Exclude risks, timelines, commentary, or extra details. End with TERMINATE if complete, else CONTINUE.
                 """
             ),
         )
