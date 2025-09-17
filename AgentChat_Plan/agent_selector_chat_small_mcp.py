@@ -97,7 +97,7 @@ async def run_agent(task: str,enable_reuse: bool):
     else:
         isReuse = 2
 
-    print(f"\n====isReuse====\n\n {isReuse} \n---------")
+    print(f"\n====isReuse====\n\n isReuse:{isReuse} score:{score} \n---------")
 
     if enable_reuse and isReuse == 2:
         response=cached_data["response"]
