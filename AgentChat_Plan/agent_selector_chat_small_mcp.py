@@ -12,6 +12,8 @@ from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_agentchat.conditions import TextMentionTermination, MaxMessageTermination
 from autogen_agentchat.base import TaskResult
 
+import time
+
 import os
 from Response_reuse import SemanticCache
 
@@ -80,6 +82,8 @@ def stop_on_terminate_selector(last_speaker, groupchat):
     return agents[(idx + 1) % len(agents)]
 
 async def run_agent(task: str,enable_reuse: bool):
+    start = time.time()
+
     #先加载mcp工具
     mcp_tool_calculator = await mcp_server_tools(calculator_mcp_server)
     mcp_tool_web_search = await mcp_server_tools(web_search_mcp_server)
@@ -312,7 +316,7 @@ async def run_agent(task: str,enable_reuse: bool):
 
         # 创建团队
         team = SelectorGroupChat(
-            [reviewer,coder, general_agent, navigation_agent, web_fetch_mcp_server, web_fetch_mcp_server],  # 可以考虑加一个reviewer之类的，手动增加来回试错,reuse过程中不进行review）
+            [reviewer,coder, general_agent, navigation_agent, web_fetch_agent, web_search_agent],  # 可以考虑加一个reviewer之类的，手动增加来回试错,reuse过程中不进行review）
             model_client=model_client,
             termination_condition=termination,
             selector_prompt=selector_prompt,
@@ -344,6 +348,10 @@ async def run_agent(task: str,enable_reuse: bool):
 
     elif isReuse == 2:
         response=cached_data["response"]
+
+    end = time.time()
+
+    print(f"代码运行耗时: {end - start:.2f} 秒")
 
 
 if __name__ == '__main__':
