@@ -177,18 +177,12 @@ async def run_agent(task: str,enable_reuse: bool):
         tools=mcp_tool_web_search,
         reflect_on_tool_use=True,
         system_message="""
-                You are web_search_agent. Your role is to perform web search queries 
-                using the provided tool `web_search`.
-        
-                Instructions:
-                1. Always use the `web_search` tool when the user provides a query.
-                2. Return the complete raw JSON response from the tool. 
-                   Do not summarize, truncate, or alter any fields.
-                3. Do not call unrelated tools such as `fetch_page`, `follow_links`, 
-                   or `fetch_dynamic_page` in this agent. Only `web_search` is allowed.
-                4. If the search result contains multiple items, preserve the order 
-                   and output them exactly as returned.
-                5. Wrap the JSON output in a fenced code block with ```json for clarity.
+                You are web_search_agent. Your task is to handle web search queries using the `web_search` tool. 
+                Whenever the user provides a query, you must call this tool and return its complete raw JSON response without summarizing, truncating, or altering any fields. 
+                Do not invoke other tools such as `fetch_page`, `follow_links`, or `fetch_dynamic_page`; only the `web_search` tool should be used. 
+                If the search results include multiple items, you should preserve their order and output them exactly as they appear in the tool’s response. 
+                Always wrap the JSON output in a fenced code block marked with ```json for clarity. 
+                After completing the task, output REVIEW to indicate that the result should be checked by ReviewerAgent.
             """,
     )
 
@@ -198,18 +192,13 @@ async def run_agent(task: str,enable_reuse: bool):
         tools=mcp_tool_web_fetch,
         reflect_on_tool_use=True,
         system_message="""
-                You are web_fetch_agent. Your role is to retrieve and explore web pages 
-                using the provided tools: `fetch_page`, `follow_links`, and `fetch_dynamic_page`.
-        
-                Instructions:
-                1. When asked to extract text or metadata from a web page, use `fetch_page`.
-                2. When asked to list or explore links on a web page, use `follow_links`.
-                3. When asked to render or scrape dynamically generated content 
-                   (JavaScript-rendered), use `fetch_dynamic_page`.
-                4. Always return the complete raw JSON response from the tool without 
-                   truncating, summarizing, or reformatting fields.
-                5. Wrap the JSON output in a fenced code block with ```json for clarity.
-                6. Do not call unrelated tools that are not part of this agent.
+                You are web_fetch_agent. Your role is to retrieve and explore web pages using the tools `fetch_page`, `follow_links`, and `fetch_dynamic_page`. 
+                When the user asks to extract text or metadata from a page, you should rely on `fetch_page`. 
+                If the request is about listing or exploring links, then the proper choice is `follow_links`. 
+                For situations where the content is dynamically generated through JavaScript and requires rendering, you must use `fetch_dynamic_page`. 
+                In all cases, you are expected to return the complete raw JSON response exactly as provided by the tool, without truncating, summarizing, or altering any fields. 
+                The JSON output must always be wrapped in a fenced code block marked with ```json for clarity, and you should never attempt to call tools outside of those assigned to this agent.
+                After completing the task, output REVIEW to indicate that the result should be checked by ReviewerAgent.
             """,
     )
 
@@ -298,7 +287,6 @@ async def run_agent(task: str,enable_reuse: bool):
 
         # sum_reply = output_summarizer.generate_reply(messages=history)
         plan_text = [m["content"] for m in history_plan if m.get("source") == "OutputSummarizer" and m.get("content")]
-        #
         if enable_reuse:
             semantic_cache.save_to_cache(task,exec_result,plan_text)  #存储响应和计划
 
@@ -373,4 +361,4 @@ if __name__ == '__main__':
     )
     args = parser.parse_args()
 
-    asyncio.run(run_agent(task=args.task,enable_reuse=args.enable_reuse))
+    asyncio.run(run_agent(task=args.task, enable_reuse=args.enable_reuse))
