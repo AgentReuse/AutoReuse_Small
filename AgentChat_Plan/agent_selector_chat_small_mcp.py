@@ -6,7 +6,7 @@ import argparse
 from autogen_agentchat.agents import AssistantAgent,UserProxyAgent
 from autogen_agentchat.ui import Console
 from autogen_ext.tools.mcp import StdioServerParams, mcp_server_tools, SseServerParams
-from autogen_agentchat.teams import SelectorGroupChat
+from autogen_agentchat.teams import SelectorGroupChat,RoundRobinGroupChat
 
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_agentchat.conditions import TextMentionTermination, MaxMessageTermination
@@ -125,14 +125,21 @@ async def run_agent(task: str,enable_reuse: bool):
             exec_result = history[-1]["content"]
             print(f"\n====Execution result====\n\n {exec_result} \n---------")
 
+            team_state = await team.save_state()
+
             # ================== 群聊结束后交给 OutputSummarizer 生成计划 ==================
             print("\n=== Generating Plan ===\n")
 
-            selector_prompt_plan = """
-                        The task is already complete. Now select the PlanGenerator agent to summarize the history.
-                        """
+            team_plan = RoundRobinGroupChat(
+                [plan_generator],
+                # 可以考虑加一个reviewer之类的，手动增加来回试错,reuse过程中不进行review）
+                model_client=model_client,
+                termination_condition=termination
+            )
 
-            stream = team.run_stream(task="The task has been completed. Based on the conversation history, use the PlanGenerator to "
+            await team_plan.load_state(team_state)
+
+            stream = team_plan.run_stream(task="The task has been completed. Based on the conversation history, use the PlanGenerator to "
                                           "summarize only the essential step-by-step execution plan that can "
                                           "be directly followed by the multi-agent system to reproduce the solution "
                                           "for the same or similar request in the future. Exclude any analysis or unnecessary dialogue. "
