@@ -61,7 +61,12 @@ async def build_mcp_tools():
     mcp_tool_calculator = await mcp_server_tools(calculator_mcp_server)
     mcp_tool_web_search = await mcp_server_tools(web_search_mcp_server)
     mcp_tool_web_fetch  = await mcp_server_tools(web_fetch_mcp_server)
-    mcp_tool_gaodemap   = await mcp_server_tools(gaode_server_params)
+    try:
+        mcp_tool_gaodemap   = await mcp_server_tools(gaode_server_params)
+    except Exception as e:
+        mcp_tool_gaodemap = None
+        print("!!!!!!!!MCP:GaoDe Error!!!!!!!!")
+        print(e)
 
     return {
         "calculator": mcp_tool_calculator,
