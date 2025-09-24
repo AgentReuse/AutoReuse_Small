@@ -123,7 +123,7 @@ async def build_agents(
     )
 
     plan_generator2 = AssistantAgent(
-        name="PlanGenerator",
+        name="PlanGenerator2",
         model_client=model_client,
         system_message=(
             """
