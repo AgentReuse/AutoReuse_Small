@@ -132,8 +132,6 @@ async def run_agent(task: str,enable_reuse: bool):
 
             team_plan = RoundRobinGroupChat(
                 [plan_generator],
-                # 可以考虑加一个reviewer之类的，手动增加来回试错,reuse过程中不进行review）
-                model_client=model_client,
                 termination_condition=termination
             )
 
