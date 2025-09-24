@@ -16,40 +16,8 @@ import time
 
 import os
 from Response_reuse import SemanticCache
+from llm_mcp_agent import build_agents, default_terminations, SelectorGroupChat, Console, create_model_client
 
-
-model_client = OpenAIChatCompletionClient(
-    model="qwen2.5:14b",
-    base_url="http://localhost:11434/v1",
-    api_key="NULL",
-    model_info={
-            "vision": False,
-            "function_calling": True,
-            "json_output": True,
-            "family": "unknown",
-        },
-)
-
-# STDIO MCPServer服务的配置
-calculator_mcp_server = StdioServerParams(
-    command="python",
-    args=["mcp/calculator_server.py"]
-)
-
-web_search_mcp_server = StdioServerParams(
-    command="python",
-    args=["mcp/web_search_server.py"]
-)
-
-web_fetch_mcp_server = StdioServerParams(
-    command="python",
-    args=["mcp/web_fetch_server.py"]
-)
-
-# 高德地图SSE
-gaode_server_params = SseServerParams(
-    url="https://mcp.amap.com/sse?key=c46c2b1b530d3d92eb4e3dfb3da32a60"
-)
 
 semantic_cache = SemanticCache(
     embedding_model_path="./m3e-small",
@@ -84,8 +52,6 @@ def stop_on_terminate_selector(last_speaker, groupchat):
 async def run_agent(task: str,enable_reuse: bool):
     start = time.time()
 
-
-
     embedding = semantic_cache.get_embedding(task)             #向量化
     similar_question, score, cached_data = semantic_cache.search_similar_query(embedding)   #相似性搜索
 
@@ -103,132 +69,16 @@ async def run_agent(task: str,enable_reuse: bool):
         response=cached_data["response"]
         print(f"\n====Execution result====\n\n {response} \n---------")
     else:
-        # 先加载mcp工具
-        mcp_tool_calculator = await mcp_server_tools(calculator_mcp_server)
-        mcp_tool_web_search = await mcp_server_tools(web_search_mcp_server)
-        mcp_tool_web_fetch = await mcp_server_tools(web_fetch_mcp_server)
-        mcp_tool_gaodemap = await mcp_server_tools(gaode_server_params)
+        agents = await build_agents(enable_tools=True)
+        general_agent = agents["general_agent"]
+        coder = agents["coder"]
+        web_search_agent = agents["web_search_agent"]
+        web_fetch_agent = agents["web_fetch_agent"]
+        navigation_agent = agents["navigation_agent"]
+        reviewer = agents["reviewer"]
+        plan_generator = agents["plan_generator"]
 
-        # ================== 定义 Agents ==================
-        reviewer = AssistantAgent(
-            name="Reviewer",
-            model_client=model_client,
-            system_message=(
-                """You are ReviewerAgent. After another agent completes a task, check whether the output correctly 
-                fulfills the user’s request. Do not question the professional quality—only verify that the output 
-                matches the requirements. If the output is satisfactory, organize and present that output in full 
-                as the final result of this request and reply TERMINATE. If not, list the specific issues or mismatches."""
-            ),
-        )
-
-        plan_generator = AssistantAgent(
-            name="PlanGenerator",
-            model_client=model_client,
-            system_message=(
-                """
-                You are a planning agent. After the group chat ends, read the full conversation history and extract only 
-                the steps where real progress was made. Generate a reproducible plan that the multi-agent system can follow 
-                for similar future requests. Always determine the correct agent names from the history (sources) instead of 
-                inventing new ones. When assigning tasks, do not include specific parameters or detailed values—abstract 
-                them so the same plan can be reused. Break down the task into smaller subtasks and assign them clearly in the following format:
-                <agent> : <abstract task description>
-                <agent> : <abstract task description>
-                …
-                Ensure the plan is concise, executable, and contains only the essential steps needed for reproduction. Exclude risks, timelines, commentary, or extra details. End with TERMINATE if complete, else CONTINUE.
-                """
-            ),
-        )
-
-        coder = AssistantAgent(
-            name="Coder",
-            model_client=model_client,
-            system_message=(
-                """You are a highly skilled coder agent responsible for writing, checking, 
-                and improving code based on the user’s requests. You must produce correct, 
-                efficient, and well-documented code, verify syntax and logic, and point out 
-                or fix potential bugs or improvements when necessary. Ensure that your 
-                responses are precise, concise, and directly actionable. 
-                Always provide complete solutions unless explicitly asked for partial output. 
-                After completing the task, output REVIEW to indicate that the result should be checked by ReviewerAgent."""
-            ),
-            #code_execution_config={"work_dir": "output/coding", "use_docker": False},
-        )
-
-        general_agent = AssistantAgent(
-            name="General_agent",
-            model_client=model_client,
-            system_message=
-            """You are General_agent, a versatile assistant responsible for handling tasks when no specialized agent is available. 
-            You should read the conversation context carefully and provide helpful, coherent, 
-            and logically consistent outputs. Your role is to fill in gaps, perform general reasoning, 
-            answer questions, or provide basic coding or documentation support as needed. 
-            Do not attempt to take over specialized responsibilities that belong to domain-specific 
-            agents unless explicitly required. Always ensure clarity, conciseness, and accuracy in your responses. 
-            After completing the task, output REVIEW to indicate that the result should be checked by ReviewerAgent.""",
-        )
-
-        navigation_agent = AssistantAgent(
-            name="navigation_agent",
-            model_client=model_client,
-            tools=mcp_tool_gaodemap,
-            reflect_on_tool_use=True,
-            system_message="""
-                    You are NavigationAgent, a specialized agent with access to a navigation tool that can plan routes, 
-                    retrieve map data, compute distances, directions, and waypoints. 
-                    When given a navigation request, you must use the provided navigation tool to produce a plan or set 
-                    of directions that are accurate, efficient, and safe. 
-                    Always verify that the map data / waypoints used are valid. 
-                    Your responses should include:
-                    1. A clear route plan or sequence of waypoints.
-                    2. Estimated distances or times if possible.
-                    
-                    After completing the task, output REVIEW to indicate that the result should be checked by ReviewerAgent.
-                """,
-        )
-
-        web_search_agent = AssistantAgent(
-            name="web_search_agent",
-            model_client=model_client,
-            tools=mcp_tool_web_search,
-            reflect_on_tool_use=True,
-            system_message="""
-                    You are web_search_agent. Your task is to handle web search queries using the `web_search` tool. 
-                    Whenever the user provides a query, you must call this tool and return its complete raw JSON response without summarizing, truncating, or altering any fields. 
-                    Do not invoke other tools such as `fetch_page`, `follow_links`, or `fetch_dynamic_page`; only the `web_search` tool should be used. 
-                    If the search results include multiple items, you should preserve their order and output them exactly as they appear in the tool’s response. 
-                    Always wrap the JSON output in a fenced code block marked with ```json for clarity. 
-                    After completing the task, output REVIEW to indicate that the result should be checked by ReviewerAgent.
-                """,
-        )
-
-        web_fetch_agent = AssistantAgent(
-            name="web_fetch_agent",
-            model_client=model_client,
-            tools=mcp_tool_web_fetch,
-            reflect_on_tool_use=True,
-            system_message="""
-                    You are web_fetch_agent. Your role is to retrieve and explore web pages using the tools `fetch_page`, `follow_links`, and `fetch_dynamic_page`. 
-                    When the user asks to extract text or metadata from a page, you should rely on `fetch_page`. 
-                    If the request is about listing or exploring links, then the proper choice is `follow_links`. 
-                    For situations where the content is dynamically generated through JavaScript and requires rendering, you must use `fetch_dynamic_page`. 
-                    In all cases, you are expected to return the complete raw JSON response exactly as provided by the tool, without truncating, summarizing, or altering any fields. 
-                    The JSON output must always be wrapped in a fenced code block marked with ```json for clarity, and you should never attempt to call tools outside of those assigned to this agent.
-                    After completing the task, output REVIEW to indicate that the result should be checked by ReviewerAgent.
-                """,
-        )
-
-        # user_proxy = autogen.UserProxyAgent(
-        #     name="user_proxy",
-        #     human_input_mode="NEVER",
-        #     max_consecutive_auto_reply=10,
-        #     llm_config=llm_config_codellama,
-        #     is_termination_msg=agent_is_term,
-        #     code_execution_config={"work_dir": "coding", "use_docker": False},
-        #     system_message=(
-        #         "Reply TERMINATE at the end of your response if the task has been solved at full satisfaction. "
-        #         "Otherwise, reply CONTINUE, or explain why not solved yet."
-        #     ),
-        # )
+        model_client = create_model_client()
 
         if isReuse == 0 or not enable_reuse:
             selector_prompt = """
