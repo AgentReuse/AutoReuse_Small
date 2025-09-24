@@ -122,6 +122,24 @@ async def build_agents(
         ),
     )
 
+    plan_generator2 = AssistantAgent(
+        name="PlanGenerator",
+        model_client=model_client,
+        system_message=(
+            """
+                You are a planning agent. After the group chat ends, read the full conversation history and extract only 
+                the steps where real progress was made. Generate a reproducible plan that the multi-agent system can follow 
+                for similar future requests. Always determine the correct agent names from the history (sources) instead of 
+                inventing new ones. When assigning tasks, do not include specific parameters or detailed values—abstract 
+                them so the same plan can be reused. Break down the task into smaller subtasks and assign them clearly in the following format:
+                <agent> : <abstract task description>
+                <agent> : <abstract task description>
+                …
+                Ensure the plan is concise, executable, and contains only the essential steps needed for reproduction. Exclude risks, timelines, commentary, or extra details. End with TERMINATE if complete, else CONTINUE.
+                """
+        ),
+    )
+
     coder = AssistantAgent(
         name="Coder",
         model_client=model_client,
@@ -209,6 +227,7 @@ async def build_agents(
     return {
         "reviewer": reviewer,
         "plan_generator": plan_generator,
+        "plan_generator2": plan_generator2,
         "coder": coder,
         "general_agent": general_agent,
         "navigation_agent": navigation_agent,

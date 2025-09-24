@@ -77,6 +77,7 @@ async def run_agent(task: str,enable_reuse: bool):
         navigation_agent = agents["navigation_agent"]
         reviewer = agents["reviewer"]
         plan_generator = agents["plan_generator"]
+        plan_generator2 = agents["plan_generator2"]
 
         model_client = create_model_client()
 
@@ -135,7 +136,7 @@ async def run_agent(task: str,enable_reuse: bool):
                                     """
 
             team_plan = SelectorGroupChat(
-                [plan_generator],
+                [plan_generator,plan_generator2],
                 model_client=model_client,
                 termination_condition=termination,
                 selector_prompt=selector_prompt_plan,
