@@ -77,7 +77,6 @@ async def run_agent(task: str,enable_reuse: bool):
         navigation_agent = agents["navigation_agent"]
         reviewer = agents["reviewer"]
         plan_generator = agents["plan_generator"]
-        plan_generator2 = agents["plan_generator2"]
 
         model_client = create_model_client()
 
@@ -132,11 +131,11 @@ async def run_agent(task: str,enable_reuse: bool):
             print("\n=== Generating Plan ===\n")
 
             selector_prompt_plan = """
-                                    The task is already complete. Now select any PlanGenerator agent to summarize the history.
+                                    The task is already complete. Now select the PlanGenerator agent to summarize the history.
                                     """
 
             team_plan = SelectorGroupChat(
-                [plan_generator,plan_generator2],
+                [reviewer, coder, general_agent, plan_generator, navigation_agent, web_search_agent, web_fetch_agent],
                 model_client=model_client,
                 termination_condition=termination,
                 selector_prompt=selector_prompt_plan,
@@ -145,7 +144,7 @@ async def run_agent(task: str,enable_reuse: bool):
 
             await team_plan.load_state(team_state)
 
-            stream = team_plan.run_stream(task="The task has been completed. Based on the conversation history, use a PlanGenerator to "
+            stream = team_plan.run_stream(task="The task has been completed. Based on the conversation history, use the PlanGenerator to "
                                           "summarize only the essential step-by-step execution plan that can "
                                           "be directly followed by the multi-agent system to reproduce the solution "
                                           "for the same or similar request in the future. Exclude any analysis or unnecessary dialogue. "
