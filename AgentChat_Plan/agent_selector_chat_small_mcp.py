@@ -130,9 +130,16 @@ async def run_agent(task: str,enable_reuse: bool):
             # ================== 群聊结束后交给 OutputSummarizer 生成计划 ==================
             print("\n=== Generating Plan ===\n")
 
-            team_plan = RoundRobinGroupChat(
-                [plan_generator],
-                termination_condition=termination
+            selector_prompt_plan = """
+                                    The task is already complete. Now select the PlanGenerator agent to summarize the history.
+                                    """
+
+            team_plan = SelectorGroupChat(
+                [reviewer, coder, general_agent, plan_generator, navigation_agent, web_search_agent, web_fetch_agent], # 可以考虑加一个reviewer之类的，手动增加来回试错,reuse过程中不进行review）
+                model_client=model_client,
+                termination_condition=termination,
+                selector_prompt=selector_prompt_plan,
+                allow_repeated_speaker=True,  # 允许代理连续多轮发言。
             )
 
             await team_plan.load_state(team_state)
